@@ -23,7 +23,6 @@ model Todo {
     updatedAt   DateTime  @updatedAt
     userId      String
     user        User      @relation(fields: [userId], references: [id])
-
 }
 
 model User {
@@ -33,4 +32,13 @@ model User {
     name      String?
     createdAt DateTime @default(now())
     todos     Todo[]
+    briefings Briefing[]
+}
+
+model Briefing {
+    id        String   @id @default(cuid())
+    content   String
+    createdAt DateTime @default(now())
+    userId    String
+    user      User     @relation(fields: [userId], references: [id])
 }

@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "./db.js";
 import { Anthropic } from "@anthropic-ai/sdk";
+import cron from "node-cron";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -198,6 +199,56 @@ app.post("/chat", authenticate, async (req, res) => {
     res.json({ reply: text });
 });
 
+app.get("/briefing", authenticate, async (req: any, res: any) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const briefing = await prisma.briefing.findFirst({
+        where: {
+            userId: req.user.id,
+            createdAt: { gte: today },
+        },
+        orderBy: { createdAt: "desc" }
+    });
+    res.json(briefing ?? null);
+});
+
+/** CRON JOBS **/
+cron.schedule("0 8 * * *", async () => {
+    console.log("Generating daily briefing...");
+    const users = await prisma.user.findMany({
+        include: { todos: { where: { completed: false } } },
+    });
+    for (const user of users) {
+        const overdue = user.todos.filter(
+            (t) => t.dueDate && new Date(t.dueDate) < new Date()
+        );
+        const high = user.todos.filter((t) => t.priority === "high");
+        const prompt = `
+            The user has ${user.todos.length} pending todos.
+            Overdue: ${overdue.map((t) => t.title).join(", ") || "none"}.
+            High priority: ${high.map((t) => t.title).join(", ") || "none"}.
+            All todos: ${user.todos.map((t) => `${t.title} (${t.priority})`).join(", ") || "none"}.
+            Write a friendly, concise morning briefing (3-4 sentences max) summarizing 
+            their day and what they should focus on first.
+            `;
+        const response = await anthropic.messages.create({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 256,
+            messages: [{ role: "user", content: prompt }],
+        });
+            
+        const content = response.content
+            .filter((b) => b is Anthropic.TextBlock => b.type === "text")
+            .map((b) => b.text)
+            .join("");
+        await prisma.briefing.create({
+            data: { content, userId: user.id },
+        });
+        console.log(`Briefing generated for ${user.email}`);
+    }
+});
+
+        
 // These must be LAST
 app.use(express.static(path.join(__dirname, "../dist/client")));
 app.get("/{*path}", (_req, res) => {
