@@ -13,6 +13,7 @@ export default defineConfig({
       "/todos": "http://localhost:3000",
       "/login": "http://localhost:3000",
       "/signup": "http://localhost:3000",
+      "/chat": "http://localhost:3000",
     },
   },
 });

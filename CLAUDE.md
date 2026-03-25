@@ -40,6 +40,6 @@ Anrim is a full-stack Todo app. The backend is built with Express 5, Prisma ORM 
 - Module resolution is `bundler` (compatible with both Vite and Node via tsx).
 - Database connection string comes from `DATABASE_URL` env var (use a `.env` file).
 - Uses Prisma's PostgreSQL driver adapter (`@prisma/adapter-pg`), not the default Prisma engine.
-- Vite dev server proxies `/todos`, `/login`, and `/signup` requests to the backend at `http://localhost:3000`.
+- Vite dev server proxies `/todos`, `/login`, `/signup`, and `/chat` requests to the backend at `http://localhost:3000`.
 - Auth uses JWT tokens stored in `localStorage`. The `JWT_SECRET` env var must be set.
 - The Home page (`/`) requires authentication; unauthenticated users are redirected to `/login`.

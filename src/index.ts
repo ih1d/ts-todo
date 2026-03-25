@@ -3,10 +3,12 @@ import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "./db.js";
+import { Anthropic } from "@anthropic-ai/sdk";
 
 const app = express();
 const PORT = 3000;
 const JWT_SECRET = process.env.JWT_SECRET;
+const anthropic = new Anthropic ({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 app.use(express.json());
 
@@ -79,6 +81,116 @@ app.patch("/todos/:id/complete", authenticate, async (req, res) => {
 app.delete("/todos/:id", authenticate, async (req, res) => {
     await prisma.todo.delete({ where: { id: req.params.id } });
     res.json({ message: "Deleted" });
+});
+
+app.post("/chat", authenticate, async (req, res) => {
+    const { message } = req.body;
+    const userId = req.user.id;
+
+    const tools: Anthropic.Tool[] = [
+        {
+            name: "get_todos",
+            description: "Get all todos from current user",
+            input_schema: { type: "object", properties: {}, required: [] },
+        },
+        {
+            name: "create_todo",
+            description: "Create a new todo for the user",
+            input_schema: {
+                type: "object",
+                properties: {
+                    title: { type: "string", description: "Title of the todo" },
+                    description: { type: "string", description: "Optional description" },
+                    priority: { type: "string", enum: ["low", "medium", "high"] },
+                    dueDate: { type: "string", description: "ISO date string, optional" },
+                },
+                required: ["title"],
+            },
+        },
+        {
+            name: "complete_todo",
+            description: "Mark a todo as completed",
+            input_schema: {
+                type: "object",
+                properties: {
+                    id: { type: "string", description: "The todo ID" },
+                },
+                required: ["id"],
+            },
+        },
+        {
+            name: "delete_todo",
+            description: "Delete a todo",
+            input_schema: {
+                type: "object",
+                properties: { 
+                    id: { type: "string", description: "The todo ID" }, 
+                },
+                required: ["id"],
+            },
+        },
+    ];
+
+  async function executeTool(name: string, input: any) {
+      switch (name) {
+          case "get_todos":
+              return await prisma.todo.findMany({ where: { userId } });
+          case "create_todo":
+              return await prisma.todo.create({
+              data: { ...input, userId },
+          });
+          case "complete_todo":
+              return await prisma.todo.update({
+              where: { id: input.id },
+              data: { completed: true },
+          });
+          case "delete_todo":
+              return await prisma.todo.delete({ where: { id: input.id } });
+          default:
+              return { error: "Unknown tool" };
+      }
+  }
+  const messages: Anthropic.MessageParam[] = [
+      { role: "user", content: message }
+  ];
+
+  let response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1024,
+      system: "You are a helpful assistant that manages the user's todo list. Use the available tools to help the user manage their tasks. Be concise and friendly.",
+      tools,
+      messages,
+  });
+
+    while (response.stop_reason === "tool_use") {
+        const toolUseBlocks = response.content.filter(
+            (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
+        );
+
+        const toolResults: Anthropic.ToolResultBlockParam[] = await Promise.all(
+            toolUseBlocks.map(async (block) => ({
+                type: "tool_result" as const,
+                tool_use_id: block.id,
+                content: JSON.stringify(await executeTool(block.name, block.input)),
+            }))
+        );
+
+        messages.push({ role: "assistant", content: response.content });
+        messages.push({ role: "user", content: toolResults });
+
+        response = await anthropic.messages.create({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 1024,
+            system: "You are a helpful assistant that manages the user's todo list. Use the available tools to help the user manage their tasks. Be concise and friendly.",
+            tools,
+            messages,
+        });
+    }
+    const text = response.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+    res.json({ reply: text });
 });
 
 app.listen(PORT, () => {

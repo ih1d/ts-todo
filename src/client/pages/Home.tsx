@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 interface Todo {
@@ -9,6 +9,11 @@ interface Todo {
   priority: string;
   dueDate: string | null;
   createdAt: string;
+}
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  text: string;
 }
 
 function getToken() {
@@ -31,6 +36,15 @@ export default function Home() {
   const [dueDate, setDueDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, chatLoading]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -98,6 +112,37 @@ export default function Home() {
     navigate("/login", { replace: true });
   }
 
+  async function handleChatSend(e: FormEvent) {
+    e.preventDefault();
+    const text = chatInput.trim();
+    if (!text || chatLoading) return;
+
+    setChatMessages((prev) => [...prev, { role: "user", text }]);
+    setChatInput("");
+    setChatLoading(true);
+
+    try {
+      const res = await fetch("/chat", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: data.reply },
+      ]);
+      await fetchTodos();
+    } catch {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", text: "Something went wrong. Please try again." },
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
+  }
+
   const pending = todos.filter((t) => !t.completed);
   const completed = todos.filter((t) => t.completed);
 
@@ -116,9 +161,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
+        <div className="flex items-center justify-between px-4 py-4">
           <h1 className="text-2xl font-bold text-gray-900">Anrim</h1>
           <button
             onClick={handleLogout}
@@ -129,117 +174,189 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-8">
-        {/* Add todo button / form */}
-        {!showForm ? (
-          <button
-            onClick={() => setShowForm(true)}
-            className="mb-6 w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-500 hover:border-indigo-400 hover:text-indigo-600"
-          >
-            + Add a new todo
-          </button>
-        ) : (
-          <form
-            onSubmit={handleAdd}
-            className="mb-6 space-y-4 rounded-lg bg-white p-4 shadow-sm"
-          >
-            <input
-              type="text"
-              required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="What needs to be done?"
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              autoFocus
-            />
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description (optional)"
-              rows={2}
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            />
-            <div className="flex gap-4">
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+      <div className="flex flex-1 overflow-hidden">
+        {/* Todo list */}
+        <main className="flex-1 overflow-y-auto px-4 py-8">
+          <div className="mx-auto max-w-3xl">
+            {/* Add todo button / form */}
+            {!showForm ? (
+              <button
+                onClick={() => setShowForm(true)}
+                className="mb-6 w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-500 hover:border-indigo-400 hover:text-indigo-600"
               >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
-            </div>
+                + Add a new todo
+              </button>
+            ) : (
+              <form
+                onSubmit={handleAdd}
+                className="mb-6 space-y-4 rounded-lg bg-white p-4 shadow-sm"
+              >
+                <input
+                  type="text"
+                  required
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="What needs to be done?"
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  autoFocus
+                />
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Description (optional)"
+                  rows={2}
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                />
+                <div className="flex gap-4">
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="submit"
+                    className="cursor-pointer rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    className="cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Pending todos */}
+            {pending.length > 0 && (
+              <section className="mb-8">
+                <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-500 uppercase">
+                  Pending ({pending.length})
+                </h2>
+                <ul className="space-y-2">
+                  {pending.map((todo) => (
+                    <TodoItem
+                      key={todo.id}
+                      todo={todo}
+                      priorityColor={priorityColor}
+                      onComplete={handleComplete}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {/* Completed todos */}
+            {completed.length > 0 && (
+              <section>
+                <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-500 uppercase">
+                  Completed ({completed.length})
+                </h2>
+                <ul className="space-y-2">
+                  {completed.map((todo) => (
+                    <TodoItem
+                      key={todo.id}
+                      todo={todo}
+                      priorityColor={priorityColor}
+                      onComplete={handleComplete}
+                      onDelete={handleDelete}
+                    />
+                  ))}
+                </ul>
+              </section>
+            )}
+
+            {todos.length === 0 && (
+              <p className="text-center text-gray-400">
+                No todos yet. Add one above!
+              </p>
+            )}
+          </div>
+        </main>
+
+        {/* Chat sidebar */}
+        <aside className="flex w-80 flex-col border-l border-gray-200 bg-white">
+          <div className="border-b border-gray-200 px-4 py-3">
+            <h2 className="text-sm font-semibold text-gray-700">AI Assistant</h2>
+            <p className="text-xs text-gray-400">Ask me to manage your todos</p>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+            {chatMessages.length === 0 && !chatLoading && (
+              <p className="text-center text-xs text-gray-400 mt-8">
+                Send a message to get started. Try "Add a todo to buy groceries" or "What are my pending tasks?"
+              </p>
+            )}
+            {chatMessages.map((msg, i) => (
+              <div
+                key={i}
+                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
+                    msg.role === "user"
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div className="flex justify-start">
+                <div className="flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-2">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" />
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
+          </div>
+
+          <form
+            onSubmit={handleChatSend}
+            className="border-t border-gray-200 p-3"
+          >
             <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                placeholder="Ask the AI..."
+                disabled={chatLoading}
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50"
+              />
               <button
                 type="submit"
-                className="cursor-pointer rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+                disabled={chatLoading || !chatInput.trim()}
+                className="cursor-pointer rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Add
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
-              >
-                Cancel
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                  <path d="M3.105 2.288a.75.75 0 0 0-.826.95l1.414 4.926A1.5 1.5 0 0 0 5.135 9.25h6.115a.75.75 0 0 1 0 1.5H5.135a1.5 1.5 0 0 0-1.442 1.086l-1.414 4.926a.75.75 0 0 0 .826.95 28.11 28.11 0 0 0 15.293-7.154.75.75 0 0 0 0-1.115A28.11 28.11 0 0 0 3.105 2.289z" />
+                </svg>
               </button>
             </div>
           </form>
-        )}
-
-        {/* Pending todos */}
-        {pending.length > 0 && (
-          <section className="mb-8">
-            <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-500 uppercase">
-              Pending ({pending.length})
-            </h2>
-            <ul className="space-y-2">
-              {pending.map((todo) => (
-                <TodoItem
-                  key={todo.id}
-                  todo={todo}
-                  priorityColor={priorityColor}
-                  onComplete={handleComplete}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {/* Completed todos */}
-        {completed.length > 0 && (
-          <section>
-            <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-500 uppercase">
-              Completed ({completed.length})
-            </h2>
-            <ul className="space-y-2">
-              {completed.map((todo) => (
-                <TodoItem
-                  key={todo.id}
-                  todo={todo}
-                  priorityColor={priorityColor}
-                  onComplete={handleComplete}
-                  onDelete={handleDelete}
-                />
-              ))}
-            </ul>
-          </section>
-        )}
-
-        {todos.length === 0 && (
-          <p className="text-center text-gray-400">
-            No todos yet. Add one above!
-          </p>
-        )}
-      </main>
+        </aside>
+      </div>
     </div>
   );
 }
