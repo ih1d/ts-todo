@@ -18,8 +18,6 @@ app.use(express.json());
 const JWT_SECRET = process.env.JWT_SECRET;
 const anthropic = new Anthropic ({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-app.use(express.json());
-
 /**** AUTH MIDDLEWARE ****/
 const authenticate = (req: any, res: any, next: any) => {
     const token = req.headers.authorization?.split(" ")[1];
