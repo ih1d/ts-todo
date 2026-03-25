@@ -29,7 +29,8 @@ Anrim is a full-stack Todo app. The backend is built with Express 5, Prisma ORM 
 - **`src/client/main.tsx`** — React app entry point; mounts the app with BrowserRouter.
 - **`src/client/App.tsx`** — Top-level routes (`/`, `/login`, `/signup`).
 - **`src/client/pages/`** — Page components (Home, Login, SignUp). Home uses a two-column layout: todo list on the left, AI chat sidebar on the right.
-- **`src/client/index.css`** — Tailwind CSS v4 import.
+- **`src/client/useTheme.ts`** — `useTheme()` hook managing dark/light mode. Toggles the `dark` class on `<html>`, persists to `localStorage`, and defaults to the user's OS `prefers-color-scheme`.
+- **`src/client/index.css`** — Tailwind CSS v4 import with `@custom-variant dark` for class-based dark mode.
 - **`vite.config.ts`** — Vite config with React plugin, Tailwind plugin, and API proxy to backend.
 - **`index.html`** — HTML entry point for Vite.
 
@@ -49,3 +50,4 @@ Anrim is a full-stack Todo app. The backend is built with Express 5, Prisma ORM 
 - Auth uses JWT tokens stored in `localStorage`. The `JWT_SECRET` env var must be set.
 - `ANTHROPIC_API_KEY` env var must be set for the AI chat feature.
 - The Home page (`/`) requires authentication; unauthenticated users are redirected to `/login`.
+- Dark mode uses Tailwind's `dark:` variant with class strategy (`@custom-variant dark` in `index.css`). All UI components include `dark:` classes. Theme preference is stored in `localStorage` under the `"theme"` key.

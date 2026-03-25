@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "../useTheme.js";
 
 interface Todo {
   id: string;
@@ -29,6 +30,7 @@ function authHeaders() {
 
 export default function Home() {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const [todos, setTodos] = useState<Todo[]>([]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -147,30 +149,47 @@ export default function Home() {
   const completed = todos.filter((t) => t.completed);
 
   const priorityColor: Record<string, string> = {
-    low: "bg-green-100 text-green-700",
-    medium: "bg-yellow-100 text-yellow-700",
-    high: "bg-red-100 text-red-700",
+    low: "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300",
+    medium: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300",
+    high: "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300",
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <p className="text-gray-500">Loading...</p>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <p className="text-gray-500 dark:text-gray-400">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-50">
-      <header className="border-b border-gray-200 bg-white">
+    <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
+      <header className="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
         <div className="flex items-center justify-between px-4 py-4">
-          <h1 className="text-2xl font-bold text-gray-900">Anrim</h1>
-          <button
-            onClick={handleLogout}
-            className="cursor-pointer text-sm font-medium text-gray-500 hover:text-gray-700"
-          >
-            Sign out
-          </button>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Anrim</h1>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleTheme}
+              className="cursor-pointer rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark" ? (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                  <path d="M12 2.25a.75.75 0 0 1 .75.75v2.25a.75.75 0 0 1-1.5 0V3a.75.75 0 0 1 .75-.75ZM7.5 12a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM18.894 6.166a.75.75 0 0 0-1.06-1.06l-1.591 1.59a.75.75 0 1 0 1.06 1.061l1.591-1.59ZM21.75 12a.75.75 0 0 1-.75.75h-2.25a.75.75 0 0 1 0-1.5H21a.75.75 0 0 1 .75.75ZM17.834 18.894a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 1 0-1.061 1.06l1.59 1.591ZM12 18a.75.75 0 0 1 .75.75V21a.75.75 0 0 1-1.5 0v-2.25A.75.75 0 0 1 12 18ZM7.758 17.303a.75.75 0 0 0-1.061-1.06l-1.591 1.59a.75.75 0 0 0 1.06 1.061l1.591-1.59ZM6 12a.75.75 0 0 1-.75.75H3a.75.75 0 0 1 0-1.5h2.25A.75.75 0 0 1 6 12ZM6.697 7.757a.75.75 0 0 0 1.06-1.06l-1.59-1.591a.75.75 0 0 0-1.061 1.06l1.59 1.591Z" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="h-5 w-5">
+                  <path fillRule="evenodd" d="M9.528 1.718a.75.75 0 0 1 .162.819A8.97 8.97 0 0 0 9 6a9 9 0 0 0 9 9 8.97 8.97 0 0 0 3.463-.69.75.75 0 0 1 .981.98 10.503 10.503 0 0 1-9.694 6.46c-5.799 0-10.5-4.7-10.5-10.5 0-4.368 2.667-8.112 6.46-9.694a.75.75 0 0 1 .818.162Z" clipRule="evenodd" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={handleLogout}
+              className="cursor-pointer text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
       </header>
 
@@ -182,14 +201,14 @@ export default function Home() {
             {!showForm ? (
               <button
                 onClick={() => setShowForm(true)}
-                className="mb-6 w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-500 hover:border-indigo-400 hover:text-indigo-600"
+                className="mb-6 w-full cursor-pointer rounded-lg border-2 border-dashed border-gray-300 px-4 py-3 text-sm font-medium text-gray-500 hover:border-indigo-400 hover:text-indigo-600 dark:border-gray-600 dark:text-gray-400 dark:hover:border-indigo-500 dark:hover:text-indigo-400"
               >
                 + Add a new todo
               </button>
             ) : (
               <form
                 onSubmit={handleAdd}
-                className="mb-6 space-y-4 rounded-lg bg-white p-4 shadow-sm"
+                className="mb-6 space-y-4 rounded-lg bg-white p-4 shadow-sm dark:bg-gray-800"
               >
                 <input
                   type="text"
@@ -197,7 +216,7 @@ export default function Home() {
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="What needs to be done?"
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-500"
                   autoFocus
                 />
                 <textarea
@@ -205,13 +224,13 @@ export default function Home() {
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Description (optional)"
                   rows={2}
-                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-500"
                 />
                 <div className="flex gap-4">
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -221,7 +240,7 @@ export default function Home() {
                     type="date"
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
-                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    className="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div className="flex gap-2">
@@ -234,7 +253,7 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800"
+                    className="cursor-pointer rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
                   >
                     Cancel
                   </button>
@@ -245,7 +264,7 @@ export default function Home() {
             {/* Pending todos */}
             {pending.length > 0 && (
               <section className="mb-8">
-                <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-500 uppercase">
+                <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
                   Pending ({pending.length})
                 </h2>
                 <ul className="space-y-2">
@@ -265,7 +284,7 @@ export default function Home() {
             {/* Completed todos */}
             {completed.length > 0 && (
               <section>
-                <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-500 uppercase">
+                <h2 className="mb-3 text-sm font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">
                   Completed ({completed.length})
                 </h2>
                 <ul className="space-y-2">
@@ -283,7 +302,7 @@ export default function Home() {
             )}
 
             {todos.length === 0 && (
-              <p className="text-center text-gray-400">
+              <p className="text-center text-gray-400 dark:text-gray-500">
                 No todos yet. Add one above!
               </p>
             )}
@@ -291,15 +310,15 @@ export default function Home() {
         </main>
 
         {/* Chat sidebar */}
-        <aside className="flex w-80 flex-col border-l border-gray-200 bg-white">
-          <div className="border-b border-gray-200 px-4 py-3">
-            <h2 className="text-sm font-semibold text-gray-700">AI Assistant</h2>
-            <p className="text-xs text-gray-400">Ask me to manage your todos</p>
+        <aside className="flex w-80 flex-col border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+          <div className="border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-200">AI Assistant</h2>
+            <p className="text-xs text-gray-400 dark:text-gray-500">Ask me to manage your todos</p>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
             {chatMessages.length === 0 && !chatLoading && (
-              <p className="text-center text-xs text-gray-400 mt-8">
+              <p className="text-center text-xs text-gray-400 mt-8 dark:text-gray-500">
                 Send a message to get started. Try "Add a todo to buy groceries" or "What are my pending tasks?"
               </p>
             )}
@@ -312,7 +331,7 @@ export default function Home() {
                   className={`max-w-[85%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
                     msg.role === "user"
                       ? "bg-indigo-600 text-white"
-                      : "bg-gray-100 text-gray-800"
+                      : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
                   }`}
                 >
                   {msg.text}
@@ -321,7 +340,7 @@ export default function Home() {
             ))}
             {chatLoading && (
               <div className="flex justify-start">
-                <div className="flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-2">
+                <div className="flex items-center gap-1 rounded-lg bg-gray-100 px-3 py-2 dark:bg-gray-700">
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.3s]" />
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:-0.15s]" />
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" />
@@ -333,7 +352,7 @@ export default function Home() {
 
           <form
             onSubmit={handleChatSend}
-            className="border-t border-gray-200 p-3"
+            className="border-t border-gray-200 p-3 dark:border-gray-700"
           >
             <div className="flex gap-2">
               <input
@@ -342,7 +361,7 @@ export default function Home() {
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Ask the AI..."
                 disabled={chatLoading}
-                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50"
+                className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-500"
               />
               <button
                 type="submit"
@@ -373,7 +392,7 @@ function TodoItem({
   onDelete: (id: string) => void;
 }) {
   return (
-    <li className="flex items-start gap-3 rounded-lg bg-white px-4 py-3 shadow-sm">
+    <li className="flex items-start gap-3 rounded-lg bg-white px-4 py-3 shadow-sm dark:bg-gray-800">
       <button
         onClick={() => !todo.completed && onComplete(todo.id)}
         disabled={todo.completed}
@@ -398,22 +417,22 @@ function TodoItem({
       <div className="flex-1 min-w-0">
         <p
           className={`text-sm font-medium ${
-            todo.completed ? "text-gray-400 line-through" : "text-gray-900"
+            todo.completed ? "text-gray-400 line-through dark:text-gray-500" : "text-gray-900 dark:text-white"
           }`}
         >
           {todo.title}
         </p>
         {todo.description && (
-          <p className="mt-0.5 text-sm text-gray-500">{todo.description}</p>
+          <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{todo.description}</p>
         )}
         <div className="mt-1 flex items-center gap-2">
           <span
-            className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${priorityColor[todo.priority] ?? "bg-gray-100 text-gray-600"}`}
+            className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${priorityColor[todo.priority] ?? "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"}`}
           >
             {todo.priority}
           </span>
           {todo.dueDate && (
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-400 dark:text-gray-500">
               Due {new Date(todo.dueDate).toLocaleDateString()}
             </span>
           )}
@@ -422,7 +441,7 @@ function TodoItem({
 
       <button
         onClick={() => onDelete(todo.id)}
-        className="cursor-pointer text-gray-300 hover:text-red-500"
+        className="cursor-pointer text-gray-300 hover:text-red-500 dark:text-gray-600 dark:hover:text-red-400"
         aria-label="Delete todo"
       >
         <svg
