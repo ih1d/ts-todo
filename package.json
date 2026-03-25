@@ -6,7 +6,9 @@
   "scripts": {
     "dev:server": "tsx src/index.ts",
     "dev:client": "vite",
-    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\""
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "build": "vite build",
+    "start": "tsx src/index.ts"
   },
   "keywords": [],
   "author": "",
