@@ -50,8 +50,11 @@ app.post("/login", async (req, res) => {
 });
 
 // Todos Protected
-app.get("/todos", authenticate, async (_req, res) => {
-    const todos = await prisma.todo.findMany(); 
+app.get("/todos", authenticate, async (req, res) => {
+    const todos = await prisma.todo.findMany({
+        where: { userId: req.user.id },
+        orderBy: { createdAt: "desc" },
+    });
     res.json(todos);
 });
 

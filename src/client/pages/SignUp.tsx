@@ -6,15 +6,27 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (password !== confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match");
       return;
     }
-    // TODO: call signup API
-    console.log("signup", { name, email, password });
+    try {
+        const res = await fetch("/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        localStorage.setItem("token", data.token);
+        window.location.href = "/";
+    } catch (err: any) {
+        setError(err.message);
+    }
   }
 
   return (
@@ -25,6 +37,7 @@ export default function SignUp() {
             Anrim
           </h1>
           <p className="mt-2 text-sm text-gray-500">Create your account</p>
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
         </div>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">

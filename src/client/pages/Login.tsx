@@ -4,11 +4,23 @@ import { Link } from "react-router-dom";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    // TODO: call login API
-    console.log("login", { email, password });
+    try {
+        const res = await fetch("/login", {
+            method: "POST",
+            headers: { "Content-type": "application/json" },
+            body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if(!res.ok) throw new Error(data.error);
+        localStorage.setItem("token", data.token);
+        window.location.href = "/";
+    } catch(err: any) {
+        setError(err.message);
+    }
   }
 
   return (
@@ -21,6 +33,7 @@ export default function Login() {
           <p className="mt-2 text-sm text-gray-500">
             Sign in to your account
           </p>
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
         </div>
 
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
