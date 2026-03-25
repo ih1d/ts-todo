@@ -1,25 +1,20 @@
 import "dotenv/config";
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "./db.js";
 import { Anthropic } from "@anthropic-ai/sdk";
-import path from "path";
-import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve static frontend
-app.use(express.static(path.join(__dirname, "../dist")));
-
-// Catch all — let React Router handle frontend routes
-app.get("*", (_req, res) => {
-    res.sendFile(path.join(__dirname, "../dist/index.html"));
-});
-
-const app = express();
+const app = express();  // app must be defined first
 const PORT = 3000;
+app.use(express.json());
+
 const JWT_SECRET = process.env.JWT_SECRET;
 const anthropic = new Anthropic ({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -204,6 +199,12 @@ app.post("/chat", authenticate, async (req, res) => {
     .map((b) => b.text)
     .join("");
     res.json({ reply: text });
+});
+
+// These must be LAST
+app.use(express.static(path.join(__dirname, "../dist")));
+app.get("*", (_req, res) => {
+    res.sendFile(path.join(__dirname, "../dist/index.html"));
 });
 
 app.listen(PORT, () => {
